@@ -12,16 +12,52 @@
     document.documentElement.style.setProperty('--header-h', `${h}px`);
   };
 
+  const mobileMq = window.matchMedia?.('(max-width: 768px)');
+
+  const setMenuA11y = (isOpen) => {
+    if (!navMenu || !navToggle) return;
+
+    navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    navToggle.setAttribute('aria-label', isOpen ? 'Tutup menu' : 'Buka menu');
+
+    const onMobile = mobileMq?.matches ?? false;
+    if (onMobile) navMenu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    else navMenu.removeAttribute('aria-hidden');
+
+    const links = Array.from(navMenu.querySelectorAll('a'));
+    for (const a of links) {
+      if (onMobile && !isOpen) a.setAttribute('tabindex', '-1');
+      else a.removeAttribute('tabindex');
+    }
+  };
+
   const openMenu = () => {
     if (!navMenu || !navToggle) return;
     navMenu.classList.add('is-open');
-    navToggle.setAttribute('aria-expanded', 'true');
+    setMenuA11y(true);
+
+    const firstLink = navMenu.querySelector('a');
+    if (firstLink instanceof HTMLElement) {
+      requestAnimationFrame(() => firstLink.focus());
+    }
   };
 
   const closeMenu = () => {
     if (!navMenu || !navToggle) return;
     navMenu.classList.remove('is-open');
-    navToggle.setAttribute('aria-expanded', 'false');
+    setMenuA11y(false);
+  };
+
+  const syncMenuForViewport = () => {
+    if (!navMenu || !navToggle) return;
+    const onMobile = mobileMq?.matches ?? false;
+    if (!onMobile) {
+      navMenu.classList.remove('is-open');
+      setMenuA11y(false);
+      return;
+    }
+
+    setMenuA11y(navMenu.classList.contains('is-open'));
   };
 
   const toggleMenu = () => {
@@ -45,6 +81,16 @@
     window.scrollTo({ top, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
   };
 
+  const setActiveHeroButton = (activeEl) => {
+    if (!(activeEl instanceof Element)) return;
+    const group = activeEl.closest('.hero-actions');
+    if (!group) return;
+
+    const buttons = Array.from(group.querySelectorAll('a.btn'));
+    for (const b of buttons) b.classList.remove('btn-primary');
+    activeEl.classList.add('btn-primary');
+  };
+
   const initNavLinks = () => {
     const links = Array.from(document.querySelectorAll('a[href^="#"]'));
 
@@ -59,6 +105,7 @@
         e.preventDefault();
         history.pushState(null, '', href);
         scrollToHash(href);
+        setActiveHeroButton(a);
         closeMenu();
       });
     }
@@ -198,6 +245,16 @@
     }
   };
 
+  const initPlaceholderLinks = () => {
+    const links = Array.from(document.querySelectorAll('[data-placeholder-link]'));
+    for (const a of links) {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('Ganti link ini dengan file CV (PDF) atau tautan Google Drive.');
+      });
+    }
+  };
+
   const init = () => {
     setHeaderHeightVar();
     initNavLinks();
@@ -206,6 +263,9 @@
     initFooterYear();
     initPplCycles();
     initDocLinks();
+    initPlaceholderLinks();
+
+    syncMenuForViewport();
 
     navToggle?.addEventListener('click', toggleMenu);
 
@@ -217,7 +277,19 @@
       closeMenu();
     });
 
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!navMenu?.classList.contains('is-open')) return;
+      closeMenu();
+      navToggle?.focus();
+    });
+
     window.addEventListener('resize', setHeaderHeightVar, { passive: true });
+
+    if (mobileMq) {
+      if (typeof mobileMq.addEventListener === 'function') mobileMq.addEventListener('change', syncMenuForViewport);
+      else if (typeof mobileMq.addListener === 'function') mobileMq.addListener(syncMenuForViewport);
+    }
 
     if (location.hash) {
       setTimeout(() => scrollToHash(location.hash), 0);
