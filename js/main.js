@@ -186,7 +186,7 @@
         label: 'Siklus 1',
         perangkat: 90,
         mengajar: 90,
-        catatan: 'Siklus 1 menunjukkan kesiapan awal yang baik. Fokus berikutnya: penguatan asesmen formatif dan pengelolaan waktu.',
+        catatan: 'Siklus 1 menunjukkan kesiapan awal yang baik. Fokus berikutnya adalah penguatan asesmen formatif dan pengelolaan waktu.',
       },
       {
         label: 'Siklus 2',
@@ -234,14 +234,51 @@
 
   const initDocLinks = () => {
     const links = Array.from(document.querySelectorAll('[data-doc-link]'));
+    const embedDetails = document.querySelector('[data-embed]');
+    const embedFrame = embedDetails?.querySelector('iframe');
+
+    const setSelected = (activeEl) => {
+      if (!(activeEl instanceof Element)) return;
+      const scope = activeEl.closest('.docs') || document;
+      const all = Array.from(scope.querySelectorAll('[data-doc-link]'));
+      for (const el of all) el.classList.remove('is-selected');
+      activeEl.classList.add('is-selected');
+    };
+
+    const setEmbed = (src, title) => {
+      if (!(embedFrame instanceof HTMLIFrameElement)) return;
+      if (!src) return;
+
+      embedFrame.setAttribute('src', src);
+      if (title) embedFrame.setAttribute('title', `Embed: ${title}`);
+
+      if (embedDetails instanceof HTMLDetailsElement) {
+        embedDetails.open = true;
+        const top = embedDetails.getBoundingClientRect().top + window.pageYOffset - getHeaderOffset() - 12;
+        window.scrollTo({ top, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+      }
+    };
+
     for (const a of links) {
-      const href = a.getAttribute('href');
-      if (!href || href === '#') {
-        a.addEventListener('click', (e) => {
+      a.addEventListener('click', (e) => {
+        setSelected(a);
+
+        const embedSrc = a.getAttribute('data-embed-src') || '';
+        const embedTitle = a.getAttribute('data-embed-title') || a.textContent?.trim() || '';
+        const href = a.getAttribute('href');
+
+        if (embedSrc) {
+          e.preventDefault();
+          setEmbed(embedSrc, embedTitle);
+          return;
+        }
+
+        if (!href || href === '#') {
           e.preventDefault();
           alert('Ganti href tombol ini dengan link dokumenmu (Drive/PDF).');
-        });
-      }
+          return;
+        }
+      });
     }
   };
 
