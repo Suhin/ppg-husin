@@ -91,6 +91,16 @@
     activeEl.classList.add('btn-primary');
   };
 
+  const setActiveNavLinkByHash = (hash) => {
+    if (!hash || !hash.startsWith('#')) return;
+
+    const navLinks = Array.from(document.querySelectorAll('.nav-link[href^="#"]'));
+    for (const a of navLinks) a.classList.remove('is-active');
+
+    const active = navLinks.find((a) => (a.getAttribute('href') || '') === hash);
+    if (active) active.classList.add('is-active');
+  };
+
   const initNavLinks = () => {
     const links = Array.from(document.querySelectorAll('a[href^="#"]'));
 
@@ -104,6 +114,7 @@
 
         e.preventDefault();
         history.pushState(null, '', href);
+        setActiveNavLinkByHash(href);
         scrollToHash(href);
         setActiveHeroButton(a);
         closeMenu();
@@ -328,9 +339,18 @@
       else if (typeof mobileMq.addListener === 'function') mobileMq.addListener(syncMenuForViewport);
     }
 
+    const initialHash = location.hash || '#home';
+    setActiveNavLinkByHash(initialHash);
+
     if (location.hash) {
       setTimeout(() => scrollToHash(location.hash), 0);
     }
+
+    window.addEventListener('popstate', () => {
+      const hash = location.hash || '#home';
+      setActiveNavLinkByHash(hash);
+      scrollToHash(hash);
+    });
   };
 
   if (document.readyState === 'loading') {
